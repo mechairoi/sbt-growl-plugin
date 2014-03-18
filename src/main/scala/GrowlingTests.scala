@@ -18,15 +18,16 @@ object GrowlingTests extends sbt.Plugin {
 
   val Growl = config("growl")
 
-  override val settings = super.settings ++ growlSettings
+  override val projectSettings = growlProjectSettings
+  override val buildSettings = growlGlobalSettings
 
-  private def growlingTestListenerTask: Def.Initialize[sbt.Task[sbt.TestReportListener]] =
+  def growlingTestListenerTask: Def.Initialize[sbt.Task[sbt.TestReportListener]] =
     (groupFormatter in Growl, exceptionFormatter in Growl, aggregateFormatter in Growl, growler in Growl, streams) map {
       (resFmt, expFmt, aggrFmt, growler, out) =>
         new GrowlingTestsListener(resFmt, expFmt, aggrFmt, growler, out.log)
     }
 
-  def growlSettings: Seq[Setting[_]] = inConfig(Growl)(Seq(
+  def growlGlobalSettings: Seq[Setting[_]] = inConfig(Growl)(Seq(
     images <<= defaultImagePath apply { path =>
       def setIfExists(name: String) = {
         val file = path / name
@@ -91,25 +92,14 @@ object GrowlingTests extends sbt.Plugin {
     defaultImagePath := file(System.getProperty("user.home")) / ".sbt" / "growl" / "icons"
   )) ++ Seq(
     testListeners <+= growlingTestListenerTask
-  ) ++ Seq(
-    commands ++= Seq(notifyCompiled)
-  ) ++ Seq(
+  )
+
+  def growlProjectSettings: Seq[Setting[_]] = inConfig(Growl)(Seq(
     compileStartTime := System.currentTimeMillis(),
 
-    compile in Compile <<= (compileStartTime, compile in Compile, resolvedScoped, executionRoots, thisProject, thisProjectRef).mapR((start, res, resolvedScoped, executionRoots, thisProject, thisProjectRef) => {
+    compile in Compile <<= (compileStartTime, compile in Compile,thisProjectRef).mapR((start, res, thisProjectRef) => {
       Result.tryValue( {
-        //println(executionRoots)
-        //println(thisProject)
-        //println(thisProjectRef)
-        //println(resolvedScoped)
-        //println(res)
-        //println(start)
-        //println(System.currentTimeMillis())
-        //println(executionRoots.toEither.right.get.map(_.key.label))
         if (System.currentTimeMillis() - start.toEither.right.get > 3000) {
-        //  ((executionRoots.toEither.right.get.exists(_.key.label == "playReloaderClasspath") &&
-        //    resolvedScoped.toEither.right.get.scope.project.toOption.get == thisProjectRef.toEither.right.get) ||
-        //   (executionRoots.toEither.right.get.exists(_ == resolvedScoped.toEither.right.get)))) {
           val (title, message) = res.toEither match {
             case Left(_) => ("Compilation failed", "Compilation failed")
             case Right(analysis) => ("Compilation completed", analysis.toString)
@@ -119,7 +109,7 @@ object GrowlingTests extends sbt.Plugin {
         res
       })
     })
-  )
+  ))
   lazy val compileStartTime = taskKey[Long]("A string task")
 
   private[this] lazy val notifyCompiled = Command.command("notify-compiled") { (state) => Growler().notify(GrowlResultFormat(None, "Compile Done", "Compile Done", false, None)); state }

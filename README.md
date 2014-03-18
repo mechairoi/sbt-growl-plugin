@@ -20,19 +20,13 @@ Install the `libnotify-bin` package.
 
 ### Project Configuration
 
-To install on a per-project basis, add the following to your plugin definition file
-
-    addSbtPlugin("me.lessis" % "sbt-growl-plugin" % "0.1.3")
-
-    resolvers += Classpaths.sbtPluginReleases
-
 To install globally, create a `Build.scala` file under `~/.sbt/0.13/plugins/project` directory and add the following
 
     import sbt._
     object PluginDef extends Build {
       override def projects = Seq(root)
       lazy val root = Project("plugins", file(".")) dependsOn(growl)
-      lazy val growl = uri("git://github.com/mechairoi/sbt-growl-plugin.git#0.1.3.1")
+      lazy val growl = uri("git://github.com/mechairoi/sbt-growl-plugin.git#0.1.3.2")
     }
 
 Run your tests with the sbt `test` task and you'll see the magikz.
