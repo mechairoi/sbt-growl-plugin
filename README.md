@@ -8,6 +8,10 @@ An [sbt](https://github.com/harrah/xsbt#readme) 0.12.* plugin that growls/notifi
 
 Install the [growl](http://growl.info/) extra [growlnotify](http://growl.info/extras.php#growlnotify) commandline client, make sure it's in your path and you have growl turned on.
 
+Or
+
+    brew install terminal-notifier
+
 ### On Ubuntu
 
 Install the `libnotify-bin` package.
@@ -22,13 +26,13 @@ To install on a per-project basis, add the following to your plugin definition f
 
     resolvers += Classpaths.sbtPluginReleases
 
-To install globally, create a `Build.scala` file under `~/.sbt/plugins/project` directory and add the following
+To install globally, create a `Build.scala` file under `~/.sbt/0.13/plugins/project` directory and add the following
 
     import sbt._
     object PluginDef extends Build {
       override def projects = Seq(root)
       lazy val root = Project("plugins", file(".")) dependsOn(growl)
-      lazy val growl = uri("git://github.com/softprops/sbt-growl-plugin.git#0.1.3")
+      lazy val growl = uri("git://github.com/mechairoi/sbt-growl-plugin.git#0.1.3.1")
     }
 
 Run your tests with the sbt `test` task and you'll see the magikz.
