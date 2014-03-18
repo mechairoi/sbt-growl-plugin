@@ -18,7 +18,7 @@ object GrowlingTests extends sbt.Plugin {
 
   val Growl = config("growl")
 
-//  override val settings = super.settings ++ growlSettings
+  override val settings = super.settings ++ growlSettings
 
   private def growlingTestListenerTask: Def.Initialize[sbt.Task[sbt.TestReportListener]] =
     (groupFormatter in Growl, exceptionFormatter in Growl, aggregateFormatter in Growl, growler in Growl, streams) map {
@@ -91,5 +91,25 @@ object GrowlingTests extends sbt.Plugin {
     defaultImagePath := file(System.getProperty("user.home")) / ".sbt" / "growl" / "icons"
   )) ++ Seq(
     testListeners <+= growlingTestListenerTask
+  ) ++ Seq(
+    commands ++= Seq(notifyCompiled)
+  ) ++ Seq(
+    stringTask := resolvedScoped.value.toString,
+
+    compile in Compile <<= (compile in Compile, resolvedScoped, executionRoots).mapR((res, resolvedScoped, executionRoots) => {
+      Result.tryValue( {
+        if (executionRoots.toEither.right.get.exists(_ == resolvedScoped.toEither.right.get)) {
+          val (title, message) = res.toEither match {
+            case Left(_) => ("Compilation failed", "Compilation failed")
+            case Right(analysis) => ("Compilation completed", analysis.toString)
+          }
+          Growler().notify(GrowlResultFormat(None, title, message, false, None))
+        }
+        res
+      })
+    })
   )
+  lazy val stringTask = taskKey[String]("A string task")
+
+  private[this] lazy val notifyCompiled = Command.command("notify-compiled") { (state) => Growler().notify(GrowlResultFormat(None, "Compile Done", "Compile Done", false, None)); state }
 }

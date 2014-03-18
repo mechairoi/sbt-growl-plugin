@@ -57,7 +57,6 @@ final class TerminalNotifierGrowler extends Growler {
       // TODO - icon
       )
     val sender = Process("terminal-notifier" +: args)
-    println("terminal-notifier" +: args)
     sender.!
   }
   override def toString = "terminal-notifier"
