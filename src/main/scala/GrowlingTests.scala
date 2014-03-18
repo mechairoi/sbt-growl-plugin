@@ -94,22 +94,33 @@ object GrowlingTests extends sbt.Plugin {
   ) ++ Seq(
     commands ++= Seq(notifyCompiled)
   ) ++ Seq(
-    stringTask := resolvedScoped.value.toString,
+    compileStartTime := System.currentTimeMillis(),
 
-    compile in Compile <<= (compile in Compile, resolvedScoped, executionRoots).mapR((res, resolvedScoped, executionRoots) => {
+    compile in Compile <<= (compileStartTime, compile in Compile, resolvedScoped, executionRoots, thisProject, thisProjectRef).mapR((start, res, resolvedScoped, executionRoots, thisProject, thisProjectRef) => {
       Result.tryValue( {
-        if (executionRoots.toEither.right.get.exists(_ == resolvedScoped.toEither.right.get)) {
+        //println(executionRoots)
+        //println(thisProject)
+        //println(thisProjectRef)
+        //println(resolvedScoped)
+        //println(res)
+        //println(start)
+        //println(System.currentTimeMillis())
+        //println(executionRoots.toEither.right.get.map(_.key.label))
+        if (System.currentTimeMillis() - start.toEither.right.get > 3000) {
+        //  ((executionRoots.toEither.right.get.exists(_.key.label == "playReloaderClasspath") &&
+        //    resolvedScoped.toEither.right.get.scope.project.toOption.get == thisProjectRef.toEither.right.get) ||
+        //   (executionRoots.toEither.right.get.exists(_ == resolvedScoped.toEither.right.get)))) {
           val (title, message) = res.toEither match {
             case Left(_) => ("Compilation failed", "Compilation failed")
             case Right(analysis) => ("Compilation completed", analysis.toString)
           }
-          Growler().notify(GrowlResultFormat(None, title, message, false, None))
+          Growler().notify(GrowlResultFormat(None, title + ": " + thisProjectRef.toEither.right.get.project, message, false, None))
         }
         res
       })
     })
   )
-  lazy val stringTask = taskKey[String]("A string task")
+  lazy val compileStartTime = taskKey[Long]("A string task")
 
   private[this] lazy val notifyCompiled = Command.command("notify-compiled") { (state) => Growler().notify(GrowlResultFormat(None, "Compile Done", "Compile Done", false, None)); state }
 }
