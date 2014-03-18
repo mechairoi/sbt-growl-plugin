@@ -16,10 +16,21 @@ object Growler {
     } catch {
       case e: Exception => false
     }
+    def isTerminalNotifierBinFriendly = try {
+      Process("which terminal-notifier").!! matches ".*terminal-notifier\\s+"
+    } catch {
+      case e: Exception => false
+    }
     // TODO - Is this enough or too strong?
     def isMac = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0
 
-    if(isMac) new MacGrowler
+    if(isMac) {
+      if(isTerminalNotifierBinFriendly) {
+        new TerminalNotifierGrowler
+      } else {
+        new MacGrowler
+      }
+    }
     else if(isLibNotifyBinFriendly) new LibNotifyBinGrowler
     else new NullGrowler
   }
@@ -30,9 +41,26 @@ final class MacGrowler extends Growler {
     val img = msg.imagePath.getOrElse("")
     val base = meow.Growl title(msg.title) identifier(msg.id.getOrElse(msg.title)) message(msg.message)
     val rich = if(img.isEmpty) base else base.image(img)
-    (if(msg.sticky) rich.sticky() else rich).meow    
+    (if(msg.sticky) rich.sticky() else rich).meow
   }
   override def toString = "growl"
+}
+
+final class TerminalNotifierGrowler extends Growler {
+  override def notify(msg: GrowlResultFormat): Unit = {
+    val args = Seq(
+      "-message", msg.message,
+      "-title", msg.title
+      // TODO - Urgency
+      // TODO - Categories
+      // TODO - msg.sticky
+      // TODO - icon
+      )
+    val sender = Process("terminal-notifier" +: args)
+    println("terminal-notifier" +: args)
+    sender.!
+  }
+  override def toString = "terminal-notifier"
 }
 
 final class NullGrowler extends Growler {
